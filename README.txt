@@ -5,4 +5,4 @@ Also this game applies some pseudo robot (pong game computer vs player) with som
 in a safe mode, wich will be senselessly in furture versions (programm will upload itself in prelaunch files and any manupulations with it will be impossible and useless), or an ability to  solve some math equations, or win a game, for what you, as a player, won't have an opportunity, because computer haven't game an 
 "Not cheating" oath, while you...
 
-Have a fun and win unwinnable game
+Have a fun and win unwinable game
