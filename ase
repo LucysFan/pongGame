@@ -6,51 +6,69 @@ from random import randint
 from time import sleep
 from os import system
 from pathlib import Path
+from random import shuffle
 
 import keyboard
 from bfNumbers import *
 
 
 class GameField:
-    def __init__(self, field : [list]):
+    def __init__(self, field: [list]):
         self.field = field
-        self.score = 0, 0
-        
-    def enlargeScore(self, update : list):
-        self.score[0] += self.update[0]
-        self.score[1] += self.update[1]
+        self.score = [0, 0]
+
+    def enlargeScore(self, update: list):
+        self.score[0] += update[0]
+        self.score[1] += update[1]
         self.updated = update
-    
+
     @classmethod
     def startGame(cls):
 
-        startGame(fraze, blank, game, 
-              cube1, cube2, cube3,
-              n0, n1, n2, n3, n4,
-              n5, n6, n7, n8, n9)
-              
+        startGame(fraze, blank, game,
+                  cube1, cube2, cube3,
+                  n0, n1, n2, n3, n4,
+                  n5, n6, n7, n8, n9)
+
     def play(self, playerPaddle, robotPaddle, pongBall):
-        GameField.startGame()
-        print(n0, blank*18, n0)
+        system('cls')
+
+        pongBall.finalPosition = None
+        robotPaddle.randomMoves = None
+        self.deadTime = None
+        robotPaddle.iter = 0
+
+        robotsScore = self.score[0]
+        playerScore = self.score[1]
+
+        robotsScore = globals()[f"n{robotsScore}"]
+        playerScore = globals()[f"n{playerScore}"]
+
+        typingPrint(1, 0.01, robotsScore, *[blank for _ in range(18)], playerScore)
+
+        # for el in zip(n0, *[blank for _ in range(18)], n0):
+        #     for _ in el:
+        #         print(*_, end='')
+        #     print(end='\n')
         for _ in self.field:
             print(*_)
         while True:
-            
+
             '''
             to move objects first we need to find out current position
-            after getting it we need to create anuiamtion with normal
+            after getting it we need to create annunciation with normal
             fps equal to 1, except for the ball, because there will be some
-            sircumstances when it's speed 'll be far more than [1,1]
-            
+            circumstances when it's speed 'll be far more than [1,1]
+
             so to create animation in general we need to move cursor to
-            the start of the line, place the line with ' ' in our's object position
-            move cursor one line up/down place the newx/previous line to the latter 
-            with our obj.appearence in it
-            
+            the start of the line, place the line with ' ' in our object position
+            move cursor one line up/down place the news/previous line to the latter 
+            with our obj.appearance in it
+
             note that every movement is created separately
-            
+
             '''
-        
+
             # player's paddle movement
             y_paddle, x_paddle = playerPaddle.position
             y_robot, x_robot = robotPaddle.position
@@ -65,74 +83,123 @@ class GameField:
             pongBall.moveObject(y_ball, self)
             robotPaddle.moveObject(y_robot, self)
 
-            if keyboard.is_pressed('Up'):
+            if keyboard.is_pressed('Up'): # moves paddle up if it can be moved
                 if playerPaddle.position[0] != 23:
                     playerPaddle.position[0] += 1
-            if keyboard.is_pressed('Down'):
+            if keyboard.is_pressed('Down'): # moves paddle down if it can be moved
                 if playerPaddle.position[0] != 1:
                     playerPaddle.position[0] -= 1
 
             y_paddle, x_paddle = playerPaddle.position
             self.field[y_paddle][x_paddle] = '|'
-            #ball's movement
+            # ball's movement
 
-            if y_ball == 1 or y_ball == 23:
+            if y_ball == 1 or y_ball == 23: # wall rebound
                 pongBall.velocity[0] *= -1
 
-            if x_ball == 2 or x_ball == 39:
-                if y_ball == y_paddle:
+            if x_ball == 39:
+                if y_ball == y_paddle:  # if ball bounce from player's paddle - calculate it's future position
                     pongBall.velocity[1] *= -1
                     ctg = pongBall.velocity[1] / pongBall.velocity[0]
                     l = pongBall.position[1] * ctg
                     pongBall.finalPosition = (24 - (
-                    (l - (((l - pongBall.position[0]) / 25) * 24) - pongBall.position[0]))).__ceil__() - 2
+                        (l - (((l - pongBall.position[0]) / 25) * 24) - pongBall.position[0]))).__ceil__() - 2
                     robotPaddle.velocity[0] *= (-pongBall.finalPosition + robotPaddle.position[0]) // (
-                                robotPaddle.position[0] - pongBall.finalPosition)
+                            robotPaddle.position[0] - pongBall.finalPosition)
+                    self.deadTime = None
+                else:
+                    self.enlargeScore([1, 0])
+                    pongBall.position = [12, 20]
+                    system('cls')
+                    sys.stdout.write(f"\x1b[{100}A\x1b[2K")
+                    sleep(3)
+                    return self.play(playerPaddle, robotPaddle, pongBall)
+
+            if x_ball == 2:
                 if y_ball == y_robot:
                     pongBall.velocity[1] *= -1
-                    robotPaddle.flag = 'start'
-                else: ...
-
-            try:
-                pongBall.finalPosition + 1
-                deadTime = abs(pongBall.finalPosition - robotPaddle.position[0]) // robotPaddle.velocity[0]
-                if abs(pongBall.position[1] // pongBall.velocity[1]) / 5  <= deadTime:
-                    if robotPaddle.position[0] != pongBall.finalPosition:
-                        robotPaddle.position[0] += robotPaddle.velocity[0]
-                    else:
-                        print(1)
-                        robotPaddle.flag = 'stop'
-                #     else:
-                #         robotPaddle.position[0] = robotPaddle.position[0]
+                    pongBall.finalPosition = None
                 else:
-                    middlePostion = randint(-1, 1)
-                    if robotPaddle.flag == 'start':
-                        if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
-                            robotPaddle.position[0] += middlePostion
-                    if robotPaddle.flag == 'stop':
-                        ...
-                #     if not flag:
-                #         if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
-                #             robotPaddle.position[0] += middlePostion
-                #         print(1)
-                #     else:
-                #         if robotPaddle.position[0] != pongBall.finalPosition:
-                #             robotPaddle.position[0] += robotPaddle.velocity[0]
-                #         else:
-                #             robotPaddle.position[0] = robotPaddle.position[0]
-            except Exception:
+                    pongBall.velocity[1] *= -1
+
+            if pongBall.finalPosition != None:
+                if self.deadTime != None:
+                    if robotPaddle.randomMoves != None:
+                        if robotPaddle.position[1] != 23 and robotPaddle.position != 2:
+                            robotPaddle.velocity = [-robotPaddle.velocity[0], 0]
+                            robotPaddle.iter += 1
+                            middlePostion = robotPaddle.velocity[0]
+                            if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
+                                robotPaddle.position[0] += middlePostion
+                        else:
+                            sign = robotPaddle.appearance[robotPaddle.iter][0]
+                            robotPaddle.velocity = [-sign, 0]
+                            middlePostion = robotPaddle.velocity[0]
+                            if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
+                                robotPaddle.position[0] += middlePostion
+                            # print(sign)
+                            # del robotPaddle.randomMoves[robotPaddle.iter]
+                            # flag = 0 # if there is no -sign in randomMoves - set flag to 1
+                            # for idx, el in enumerate(robotPaddle.randomMoves[robotPaddle.iter:]):
+                            #     if el[0] == -sign:
+                            #         del robotPaddle.randomMoves[robotPaddle.iter:][idx]
+                            #         flag = 0
+                            #         break
+                            #     if el[0] == sign:
+                            #         flag = 1
+                            # if flag == 1:
+                            #     try:
+                            #         robotPaddle.randomMoves[robotPaddle.iter:][0] = [-sign, 0]
+                            #     except:
+                            #         robotPaddle.velocity = [-robotPaddle.velocity[0], robotPaddle.velocity[1]]
+                    else:
+                        if robotPaddle.position[0] == pongBall.finalPosition:
+                            iterations = pongBall.position[1] // robotPaddle.velocity[0]
+                            if iterations % 2 != 0:
+                                iterations -= 1
+                            randomMoves = [[1, 0] for _ in range(iterations // 2)]
+                            randomMoves += [[-1, 0] for _ in range(iterations // 2)]
+                            shuffle(randomMoves)
+
+                            robotPaddle.iter = 0
+                            robotPaddle.randomMoves = randomMoves
+                            middlePostion = robotPaddle.velocity[0]
+                            if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
+                                robotPaddle.position[0] += middlePostion
+                        else:
+                            middlePostion = robotPaddle.velocity[0]
+                            if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
+                                robotPaddle.position[0] += middlePostion
+
+                else:
+                    # self.deadTime = abs(pongBall.finalPosition - robotPaddle.position[0]) // robotPaddle.velocity[0]
+                    self.deadTime = 35 # iteration before collision
+                    velocity = pongBall.finalPosition - robotPaddle.position[0]
+                    with open('file.txt', 'w') as file:
+                        file.write(str(velocity / abs(velocity)) + str(int(velocity / abs(velocity))))
+                    velocity = velocity / abs(velocity)
+                    robotPaddle.velocity = [int(velocity), 0]
+                    middlePostion = robotPaddle.velocity[0]
+                    if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
+                        robotPaddle.position[0] += middlePostion
+            else:
+                with open('file.txt', 'w') as file:
+                    file.write(str(robotPaddle.position) + str(robotPaddle.velocity))
                 middlePostion = randint(-1, 1)
                 if robotPaddle.position[0] != 1 and robotPaddle.position[0] != 23:
                     robotPaddle.position[0] += middlePostion
 
-            y_robot, x_robot = robotPaddle.position
-            self.field[y_robot][x_robot]  = '|'
+            try:
+                y_robot, x_robot = robotPaddle.position
+                self.field[y_robot][x_robot] = '|'
+            except Exception:
+                print(robotPaddle.position)
+
             pongBall.position[0] += pongBall.velocity[0]
             pongBall.position[1] += pongBall.velocity[1]
 
             y_ball, x_ball = pongBall.position
             self.field[y_ball][x_ball] = '◯'
-
 
             playerPaddle.moveObject(y_paddle, self)
             pongBall.moveObject(y_ball, self)
@@ -140,9 +207,10 @@ class GameField:
 
             sleep(0.1)
 
+
 class GameObject:
-    def __init__(self, appearance : str,
-                 position : [int, int],  # position [y, x], velocity [y,x]
+    def __init__(self, appearance: str,
+                 position: [int, int],  # position [y, x], velocity [y,x]
                  velocity: [int, int]):
         self.appearance = appearance
         self.position = position
@@ -151,32 +219,32 @@ class GameObject:
     def stickObject(self, field):
         y, x = self.position
         field.field[y][x] = self.appearance
-    
+
     def moveObject(self, y, field):
         sys.stdout.write(f"\x1b[{y + 1}A\x1b[2K")
         print(*field.field[y])
         sys.stdout.write(f"\x1b[{y}B")
- 
+
+
 class PongBall(GameObject):
 
     def displacement(self):
         self.position[0] += self.velocity[0]
         self.position[1] += self.velocity[1]
 
-    def moveBall(self, field):
-        y_ball, x_ball = self.position # get ball's position | remember (y,x)
+    def moveBall(self, y,  field):
+        y_ball, x_ball = self.position  # get ball's position | remember (y,x)
         field.filed[y_ball][x_ball] = ' '
-        
+
         sys.stdout.write(f"\x1b[{y + 1}A\x1b[2K")
         print(*field.field[y])
         sys.stdout.write(f"\x1b[{y}B")
-        
-        
+
 
 # this is block of function created to prevent user-breaking the programm
 
 
-# fucntion is disabled due to unfortunate surcumstances appeared in windows xi with getting uac
+# fucntion is disabled due to unfortunate surcumstances appeared in windows XI with getting uac
 """
 def disabletaskManager():
     '''
@@ -192,98 +260,100 @@ def disabletaskManager():
     :: BatchGotAdmin
     :------------------
     >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
-    
+
     REM --> If error flag set, we do not have admin
     if '%errorlevel%' NEQ '0' (
         goto UACPrompt
     ) else (gotADmin)
-    
+
     :UACPrompt
         echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
         echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
-        
+
         "%temp%\getadmin.vbs"
         exit /B
     :gotAdmin
         if exist "%temp%\getadmin.vbs" (del "%temp%\getadmin.vbs")
         push "%CD%"
         CD /D "%~dp0"
-    
+
     set SCRIPT = "%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%.vbs"
-    
+
     @cmd.exe
     '''
-    
+
     with open("adminOath.txt", 'w') as runAsAdmin:
         runAsAdmin.write(adminOath)
-"""    
+"""
 
-def click(x,y):
+
+def click(x, y):
     '''
     to prevent user closing the programm with a mouse key
     '''
 
     while True:
-        win32api.SetCursorPos((x,y))
-    #win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
-    #win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+        win32api.SetCursorPos((x, y))
+    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
+    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+
 
 def dialogWindow(password):
     '''
     function to check if user knows the password (
-    in case he don't the programm won't stop 
+    in case he don't the program won't stop
     and ll be working as it supposed)
     '''
     from tkinter import Tk
     from tkinter import simpledialog
-    
-    userPassword = simpledialog.askstring("Admin checker", "Enter password >>> ") # create simple dialog window
+
+    userPassword = simpledialog.askstring("Admin checker", "Enter password >>> ")  # create simple dialog window
     root = Tk()
-    if userPassword == password:
+    if str(userPassword) == str(password):
         root.quit()
         return 'Accepted'
     else:
         root.quit()
-        return 'denied'
-    
+        return 'Denied'
+
 
 def sigint_hander(signal, handler):
     '''
     function is created to prevent closing the programm
     by keyboard interruption (unless user know the password)
     '''
-    
+
     password = '111'
-    
+
     match dialogWindow(password):
         case 'Accepted':
             exit()
-        case 'denied':
+        case 'Denied':
             pass
 
-    
 
-if __name__ == "__main__":
-
+def PLAY():
     signal.signal(signal.SIGINT, sigint_hander)
 
-    pongField = [[' ' for i in range(41)] for j in range(25)] # create field map
-    pongField[0] = ['+' for _ in range(41)] # add upper bound
-    pongField[-1] = ['~' for _ in range(41)] # add lower bound
-    
+    pongField = [[' ' for i in range(41)] for j in range(25)]  # create field map
+    pongField[0] = ['+' for _ in range(41)]  # add upper bound
+    pongField[-1] = ['~' for _ in range(41)]  # add lower bound
+
     pongField = GameField(pongField)
-    
-    playerPad = GameObject('|', [12, 39], [1, 0]) # moves only up/down
-    robotPad = GameObject('|', [12, 2], [1, 0]) # moves only up/down
-    pongBall = GameObject('◯', [12, 20], [1, 1]) # can move in any direction in 2D space, spawns in the center
-                    
+
+    playerPad = GameObject('|', [12, 39], [1, 0])  # moves only up/down
+    robotPad = GameObject('|', [12, 2], [1, 0])  # moves only up/down
+    pongBall = GameObject('◯', [12, 20], [1, 1])  # can move in any direction in 2D space, spawns in the center
+
     playerPad.stickObject(pongField)
     robotPad.stickObject(pongField)
     pongBall.stickObject(pongField)
-    
+
     system('cls')
-    _mouseLock = threading.Thread(target=click, args=(10, 10), daemon=True)
-    _mouseLock.start()
-    
+    # _mouseLock = threading.Thread(target=click, args=(10, 10), daemon=True)
+    # _mouseLock.start()
+
+    GameField.startGame()
+    sleep(5)
+    system('cls')
     pongField.play(playerPad, robotPad, pongBall)
-    
